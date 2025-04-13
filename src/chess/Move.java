@@ -10,11 +10,11 @@ public class Move {
     public final boolean isCastling;
     public final boolean isEnPassant;
     public final boolean isPromotion;
-    public final char promotionType; // Q, R, B, N
+    public final Character promotionType; // Q, R, B, N
 
     public Move(int fromRow, int fromCol, int toRow, int toCol,
                 Piece movingPiece, Piece capturedPiece,
-                boolean isCastling, boolean isEnPassant, boolean isPromotion, char promotionType) {
+                boolean isCastling, boolean isEnPassant, boolean isPromotion, Character promotionType) {
         this.fromRow = fromRow;
         this.fromCol = fromCol;
         this.toRow = toRow;
