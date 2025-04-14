@@ -1,6 +1,9 @@
+// --- START OF FILE Pawn.java ---
 package chess.pieces;
 
 import chess.*;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Pawn extends Piece {
     public Pawn(Color color) { super(color); }
@@ -9,19 +12,49 @@ public class Pawn extends Piece {
     public char getSymbol() { return 'P'; }
 
     @Override
-    public boolean isValidMove(ChessBoard board, int fromRow, int fromCol, int toRow, int toCol) {
-        int dir = color == Color.WHITE ? -1 : 1;
-        int startRow = color == Color.WHITE ? 6 : 1;
+    public boolean isValidMovePattern(int fromRow, int fromCol, int toRow, int toCol) {
+        int dir = (color == Color.WHITE) ? -1 : 1;
+        int dr = toRow - fromRow;
+        int dc = Math.abs(toCol - fromCol);
 
-        Piece target = board.getPiece(toRow, toCol);
+        // Forward move (1 square)
+        if (dc == 0 && dr == dir) return true;
+        // Initial double move
+        int startRow = (color == Color.WHITE) ? 6 : 1;
+        if (dc == 0 && dr == 2 * dir && fromRow == startRow) return true;
+        // Capture
+        if (dc == 1 && dr == dir) return true;
 
-        if (fromCol == toCol && target == null) {
-            if (toRow - fromRow == dir) return true;
-            if (fromRow == startRow && toRow - fromRow == 2 * dir && board.getPiece(fromRow + dir, fromCol) == null) return true;
-        } else if (Math.abs(fromCol - toCol) == 1 && toRow - fromRow == dir) {
-            if (target != null && isOpponent(target)) return true;
-            if (board.isEnPassantTarget(toRow, toCol)) return true;
-        }
         return false;
+    }
+
+    // Note: isValidMove logic is complex and better handled within ChessBoard
+    // considering board state (blocking pieces, en passant targets, captures).
+    // The pattern check is a basic filter.
+
+    @Override
+    public List<int[]> getAttackedSquares(ChessBoard board, int fromRow, int fromCol) {
+        List<int[]> attacks = new ArrayList<>();
+        int dir = (color == Color.WHITE) ? -1 : 1;
+        int targetRow = fromRow + dir;
+
+        // Diagonal captures
+        int leftCol = fromCol - 1;
+        int rightCol = fromCol + 1;
+
+        if (board.isValidCoordinate(targetRow, leftCol)) {
+            attacks.add(new int[]{targetRow, leftCol});
+        }
+        if (board.isValidCoordinate(targetRow, rightCol)) {
+            attacks.add(new int[]{targetRow, rightCol});
+        }
+        return attacks;
+    }
+
+    @Override
+    public Piece copy() {
+        Pawn copy = new Pawn(this.color);
+        super.copyState(copy);
+        return copy;
     }
 }
