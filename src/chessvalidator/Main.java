@@ -1,7 +1,7 @@
-package main;
+package chessvalidator;
 
-import main.reports.FileValidationResult;
-import main.reports.GameValidationResult;
+import chessvalidator.reports.FileValidationResult;
+import chessvalidator.reports.GameValidationResult;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 public class Main {
 
@@ -21,7 +20,7 @@ public class Main {
 
     public static void main(String[] args) {
         if (args.length != 1) {
-            System.err.println("Usage: java com.yourusername.pgnvalidator.Main <path/to/pgn/file_or_folder>");
+            System.err.println("Usage: java Main <Tbilisi2015.pgn>");
             System.exit(1);
         }
 

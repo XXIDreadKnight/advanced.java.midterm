@@ -1,11 +1,11 @@
-package main;
+package chessvalidator;
 
-import main.model.Color;
-import main.model.GameState;
-import main.model.Move;
-import main.model.SanHelper;
-import main.reports.GameValidationResult;
-import main.reports.PgnErrorInfo;
+import chessvalidator.model.Color;
+import chessvalidator.model.GameState;
+import chessvalidator.model.Move;
+import chessvalidator.model.SanHelper;
+import chessvalidator.reports.GameValidationResult;
+import chessvalidator.reports.PgnErrorInfo;
 
 public class GameValidator {
 

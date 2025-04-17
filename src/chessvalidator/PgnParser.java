@@ -1,6 +1,7 @@
-package main;
+package chessvalidator;
 
-import main.reports.*;
+import chessvalidator.reports.FileValidationResult;
+import chessvalidator.reports.PgnErrorInfo;
 
 import java.io.BufferedReader;
 import java.io.IOException;

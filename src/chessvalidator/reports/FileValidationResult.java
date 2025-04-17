@@ -1,4 +1,4 @@
-package main.reports;
+package chessvalidator.reports;
 
 import java.util.ArrayList;
 import java.util.List;

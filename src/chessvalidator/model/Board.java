@@ -1,4 +1,4 @@
-package main.model;
+package chessvalidator.model;
 
 import java.util.Arrays;
 

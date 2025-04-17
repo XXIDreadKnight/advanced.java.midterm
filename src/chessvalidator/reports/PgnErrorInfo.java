@@ -1,4 +1,4 @@
-package main.reports;
+package chessvalidator.reports;
 
 public record PgnErrorInfo(
         int gameIndex,    // 0-based index of the game within the file
