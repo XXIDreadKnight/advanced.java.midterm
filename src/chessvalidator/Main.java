@@ -2,6 +2,7 @@ package chessvalidator;
 
 import chessvalidator.reports.FileValidationResult;
 import chessvalidator.reports.GameValidationResult;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -115,16 +116,16 @@ public class Main {
         List<Path> pgnFiles = new ArrayList<>();
         try {
             if (Files.isDirectory(startPath)) {
-                Files.walkFileTree(startPath, new SimpleFileVisitor<Path>() {
+                Files.walkFileTree(startPath, new SimpleFileVisitor<>() {
                     @Override
-                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    public @NotNull FileVisitResult visitFile(Path file, @NotNull BasicFileAttributes attrs) {
                         if (file.toString().toLowerCase().endsWith(".pgn")) {
                             pgnFiles.add(file);
                         }
                         return FileVisitResult.CONTINUE;
                     }
                     @Override
-                    public FileVisitResult visitFileFailed(Path file, IOException exc) {
+                    public @NotNull FileVisitResult visitFileFailed(Path file, @NotNull IOException exc) {
                         System.err.println("Warning: Cannot access file " + file + ": " + exc.getMessage());
                         return FileVisitResult.CONTINUE; // Skip problematic files/dirs
                     }

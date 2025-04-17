@@ -1,3 +1,142 @@
+[Event "Syntax Test Game"]
+[Site "Local"]
+[Date "2023.10.27"]  { Syntax Error: Missing opening bracket }
+[Round "1"]
+[White "Test Player A] { Syntax Error: Missing closing quote }
+[Black "Test Player B"]
+[Result "*"]
+[BadKey NoQuotes]    { Syntax Error: Malformed Key/Value }
+
+moves before headers { Syntax Error: Text before any headers, if this line was actually first }
+
+1. e4 e5
+2. Nf3 Nc6
+3. Bb5 a6
+4. BxNf6 { Syntax Error?: Depending on strictness, 'Nf6' isn't a square. Should be Bxc6. But SAN might allow piece name if unambiguous capture. Let's make it definitely bad: BxZ6 }
+BxZ6 { Syntax Error: Invalid square Z6 }
+4... dxc6
+5. O-O f6
+6. d5 { Syntax Error: Pawn move needs target square, e.g., d4 or d3. Just 'd5' is invalid }
+6... Bd6
+7. Nc3 hello { Syntax Error: Invalid token 'hello' }
+7... Bg4
+8. Qd3 Castle { Syntax Error: Invalid token 'Castle', should be O-O or O-O-O }
+8... Qd7
+9. 10. { Syntax Error?: Move number without trailing dot(s) }
+9. Nd2 O-O-O-O { Syntax Error: Triple O castling }
+[AnotherHeader "Late"] { Syntax Error: Header tag after moves started }
+10... Kb8
+11. e9 { Syntax Error: Invalid target square 'e9' }
+11... * { Game ends prematurely, but might be valid if '*' is the result }
+
+[Event "Logical Test Game - Illegal Move"]
+[Site "Local"]
+[Date "2023.10.27"]
+[Round "1"]
+[White "Test Player C"]
+[Black "Test Player D"]
+[Result "*"]
+
+1. e4 c5 { Standard Sicilian }
+2. Nf3 d6
+3. Bb5+ Bd7
+4. Bxd7+ Qxd7
+5. c4 Nc6
+6. Nc3 Nf6
+7. O-O g6
+8. d4 cxd4
+9. Nxd4 Bg7
+10. f3 O-O
+11. Be3 Rac8
+12. b3 e6
+13. Qd2 Rfd8
+14. Rad1 Qe7
+15. Ndb5 Ne8
+16. Bg5 f6
+17. Bh4 { White prepares to move the Bishop }
+17... a6
+18. Na3 { White moves the Knight }
+18... Qf7
+19. Bg2 { Logical Error: Bishop attempting to move like a Knight from h4 to g2. Illegal move. }
+19... f5 { This move and subsequent ones should not be validated for this game }
+20. exf5 gxf5
+*
+
+[Event "Logical Test Game - Ambiguous Move"]
+[Site "Local"]
+[Date "2023.10.27"]
+[Round "1"]
+[White "Test Player E"]
+[Black "Test Player F"]
+[Result "*"]
+
+{ Setup: Place white rooks on a1 and d1, black king on d8. It's White's turn. }
+[FEN "3k4/8/8/8/8/8/8/R2R3K w - - 0 1"] { Optional: Your parser could handle FEN from headers }
+
+{ If not using FEN, manually set up this position in your test or describe it }
+{ Assume a position where both Ra1 and Rd1 can legally move to c1. For simplicity, let's just make moves leading to it (even if slightly unnatural) }
+
+1. d4 d5
+2. Nf3 Nc6
+3. Nc3 Nf6
+4. Bf4 Bf5 { Set up some pieces }
+5. e3 e6
+6. a3 Bd6
+7. Ne5 O-O
+8. Be2 Ne4
+9. Nxe4 Bxe4
+10. O-O f6
+11. Nxc6 bxc6
+12. Bxd6 cxd6
+13. c4 Rb8 { Clearing the c-file }
+14. b4 dxc4
+15. Bxc4 d5
+16. Bd3 Bxd3
+17. Qxd3 Qd6
+18. Rac1 { Rook moves to c1 }
+18... Rb6
+19. Rc5 { White now has rooks on a1 and c5. Let's move the other rook. }
+19... e5
+20. Rfc1 { Logical Error: Both Ra1 and Rc5 can move to c1. 'Rfc1' is required for the rook from a1, or 'R5c1' for the rook from c5. Just 'Rc1' is ambiguous. }
+20... exd4 { Subsequent moves should not be validated }
+21. Qxd4 *
+
+[Event "Logical Test Game - Move into Check"]
+[Site "Local"]
+[Date "2023.10.27"]
+[Round "1"]
+[White "Test Player G"]
+[Black "Test Player H"]
+[Result "*"]
+
+1. e4 e5
+2. Nf3 Nc6
+3. Bc4 Bc5
+4. O-O Nf6
+5. d3 d6
+6. Bg5 h6
+7. Bh4 g5 { Black attacks the bishop }
+8. Bg3 { Bishop retreats }
+8... Bg4 { Black pins the Knight on f3 against the Queen on d1 }
+9. Nbd2 { White breaks the pin with the Queen }
+9... Nh5 { Black prepares ...Nf4 or attacks g3 bishop }
+10. c3 Qe7 { Preparing queenside castle maybe }
+11. Kh1 { White moves king, maybe unnecessarily }
+11... O-O-O { Black castles queenside, rook now on d8 }
+12. Bd5 { Logical Error: White moves the Bishop, but this allows Black's Rook on d8 to attack the White King on h1 through the now-open d-file diagonal (d8-h4). The Knight on f3 is no longer blocking. Wait, that's not right. Rook on d8 attacks d1. Let's re-think.
+   Setup: White King e1, White Bishop d2, Black Rook a1. White moves Bd3. This is illegal as it opens the King to attack from the Rook. }
+
+[FEN "r3k2r/ppp1qpp1/2npbn1p/2b1p3/4P3/2PP1NP1/PP1N1PBP/R1BQR1K1 b kq - 0 8"] { Let's use FEN for a known pin position }
+{ Black to move after 8. O-O }
+8... a6
+9. b4 Ba7
+10. a4 Ng4 { Black attacks f2 }
+11. Re2 { White defends f2. Now Bishop on c1 is pinned to the King by Black Rook on e8. }
+11... f5
+12. d4 { Logical Error: White moves the d-pawn, but the Bishop on c1 is pinned to the King on g1 by the Rook on e8. Moving the pawn is illegal as it doesn't resolve the pin. }
+12... fxe4 { Subsequent moves should not be validated }
+*
+
 [Event "Tbilisi FIDE GP 2015"]
 [Site "Tbilisi GEO"]
 [Date "2015.02.15"]

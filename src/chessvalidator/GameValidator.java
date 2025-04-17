@@ -30,16 +30,47 @@ public class GameValidator {
             // return result; // Stop validation here if syntax is bad
         }
 
-        // 2. Initialize game state
-        GameState gameState = new GameState(); // Starts with initial position
-        // TODO: Handle FEN header if present for non-standard starting positions
+        // 2. Initialize game state (Check for FEN first)
+        GameState gameState;
+        try {
+            gameState = new GameState(); // Create instance
+            String fen = parsedGame.getFenString();
+            if (fen != null && !fen.isBlank()) {
+                System.out.println("Game " + (parsedGame.getGameIndex()+1) + ": Starting from FEN: " + fen); // Debugging output
+                gameState.loadFromFen(fen); // <<< LOAD FROM FEN
+            } else {
+                // No FEN provided, GameState default constructor already set up initial position
+                System.out.println("Game " + (parsedGame.getGameIndex()+1) + ": Starting from initial position."); // Debugging output
+            }
+        } catch (IllegalArgumentException e) {
+            // FEN parsing failed
+            result.addError(new PgnErrorInfo(
+                    parsedGame.getGameIndex(),
+                    0, // Error before first move
+                    "FEN Header", // Location hint
+                    "Logical error: Invalid FEN string provided: " + e.getMessage(),
+                    false // Logical error (prevents game replay)
+            ));
+            return result; // Cannot proceed if FEN is invalid
+        } catch (Exception e) {
+            // Catch unexpected errors during FEN loading
+            result.addError(new PgnErrorInfo(
+                    parsedGame.getGameIndex(),
+                    0,
+                    "FEN Header",
+                    "Unexpected error loading FEN: " + e.getMessage(),
+                    false
+            ));
+            e.printStackTrace();
+            return result;
+        }
 
         int halfMoveCount = 0; // Track moves for error reporting (1. e4 e5 is 2 half-moves)
 
         // 3. Replay moves one by one
         for (String sanMove : parsedGame.getSanMoves()) {
             halfMoveCount++;
-            int fullMoveNum = (gameState.getCurrentPlayer() == Color.WHITE) ? gameState.getFullMoveNumber() : gameState.getFullMoveNumber();
+            int fullMoveNum = gameState.getFullMoveNumber();
 
 
             try {

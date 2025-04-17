@@ -7,7 +7,7 @@ import java.util.Objects;
 public class GameState {
     private Board board;
     private Color currentPlayer;
-    private boolean whiteCanCastleKingSide;
+    boolean whiteCanCastleKingSide;
     private boolean whiteCanCastleQueenSide;
     private boolean blackCanCastleKingSide;
     private boolean blackCanCastleQueenSide;
@@ -28,6 +28,157 @@ public class GameState {
         fullMoveNumber = 1;
     }
 
+    /**
+     * Clears the current state and loads a new state from a FEN string.
+     * @param fenString The FEN string (e.g., "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").
+     * @throws IllegalArgumentException if the FEN string is invalid.
+     */
+    public void loadFromFen(String fenString) throws IllegalArgumentException {
+        if (fenString == null || fenString.isBlank()) {
+            throw new IllegalArgumentException("FEN string cannot be null or empty.");
+        }
+
+        String[] parts = fenString.trim().split("\\s+");
+        if (parts.length != 6) {
+            throw new IllegalArgumentException("Invalid FEN string: Expected 6 parts, found " + parts.length + " in '" + fenString + "'");
+        }
+
+        // Reset board and state variables before loading
+        this.board = new Board(); // Create a new empty board
+        this.whiteCanCastleKingSide = false;
+        this.whiteCanCastleQueenSide = false;
+        this.blackCanCastleKingSide = false;
+        this.blackCanCastleQueenSide = false;
+        this.enPassantTargetSquare = null;
+        this.halfMoveClock = 0;
+        this.fullMoveNumber = 1; // Default, will be overridden
+
+        try {
+            // Part 1: Piece Placement
+            parseFenPiecePlacement(parts[0]);
+
+            // Part 2: Active Color
+            parseFenActiveColor(parts[1]);
+
+            // Part 3: Castling Availability
+            parseFenCastling(parts[2]);
+
+            // Part 4: En Passant Target Square
+            parseFenEnPassant(parts[3]);
+
+            // Part 5: Halfmove Clock
+            this.halfMoveClock = Integer.parseInt(parts[4]);
+            if (this.halfMoveClock < 0) throw new NumberFormatException("Halfmove clock cannot be negative.");
+
+            // Part 6: Fullmove Number
+            this.fullMoveNumber = Integer.parseInt(parts[5]);
+            if (this.fullMoveNumber < 1) throw new NumberFormatException("Fullmove number must be >= 1.");
+
+        } catch (IllegalArgumentException | ArrayIndexOutOfBoundsException | NullPointerException e) {
+            // Catch specific errors during parsing (IllegalArgumentException covers NumberFormatException)
+            throw new IllegalArgumentException("Invalid FEN string: Error parsing part. Details: " + e.getMessage() + " in '" + fenString + "'", e);
+        } catch (Exception e) {
+            // Catch any other unexpected errors
+            throw new IllegalArgumentException("Unexpected error parsing FEN string: '" + fenString + "'", e);
+        }
+    }
+
+    private void parseFenPiecePlacement(String placementPart) throws IllegalArgumentException {
+        String[] ranks = placementPart.split("/");
+        if (ranks.length != 8) {
+            throw new IllegalArgumentException("FEN piece placement requires 8 ranks separated by '/', found " + ranks.length);
+        }
+
+        for (int rankIndex = 0; rankIndex < 8; rankIndex++) {
+            int boardRow = 7 - rankIndex; // FEN ranks are 8 down to 1, board rows are 0 up to 7
+            String rankStr = ranks[rankIndex];
+            int boardCol = 0;
+            for (char c : rankStr.toCharArray()) {
+                if (boardCol >= 8) {
+                    throw new IllegalArgumentException("FEN rank " + (8 - rankIndex) + " ('" + rankStr + "') has too many items.");
+                }
+                if (Character.isDigit(c)) {
+                    int emptySquares = Character.getNumericValue(c);
+                    if (emptySquares < 1 || emptySquares > 8) {
+                        throw new IllegalArgumentException("Invalid FEN digit '" + c + "' in rank " + (8 - rankIndex));
+                    }
+                    // Place nulls for empty squares
+                    for (int i = 0; i < emptySquares; i++) {
+                        if (boardCol >= 8) throw new IllegalArgumentException("FEN rank " + (8 - rankIndex) + " adds up beyond 8 columns.");
+                        board.setPiece(new Square(boardRow, boardCol), null);
+                        boardCol++;
+                    }
+                } else {
+                    Piece piece = fenCharToPiece(c);
+                    if (piece == null) {
+                        throw new IllegalArgumentException("Invalid character '" + c + "' in FEN piece placement.");
+                    }
+                    board.setPiece(new Square(boardRow, boardCol), piece);
+                    boardCol++;
+                }
+            }
+            if (boardCol != 8) {
+                throw new IllegalArgumentException("FEN rank " + (8 - rankIndex) + " ('" + rankStr + "') does not add up to 8 columns (ended at " + boardCol + ").");
+            }
+        }
+    }
+
+    private Piece fenCharToPiece(char c) {
+        Color color = Character.isUpperCase(c) ? Color.WHITE : Color.BLACK;
+        PieceType type = switch (Character.toLowerCase(c)) {
+            case 'p' -> PieceType.PAWN;
+            case 'r' -> PieceType.ROOK;
+            case 'n' -> PieceType.KNIGHT;
+            case 'b' -> PieceType.BISHOP;
+            case 'q' -> PieceType.QUEEN;
+            case 'k' -> PieceType.KING;
+            default -> null;
+        };
+        return (type == null) ? null : new Piece(type, color);
+    }
+
+    private void parseFenActiveColor(String colorPart) throws IllegalArgumentException {
+        if ("w".equalsIgnoreCase(colorPart)) {
+            this.currentPlayer = Color.WHITE;
+        } else if ("b".equalsIgnoreCase(colorPart)) {
+            this.currentPlayer = Color.BLACK;
+        } else {
+            throw new IllegalArgumentException("Invalid active color in FEN: '" + colorPart + "' (expected 'w' or 'b').");
+        }
+    }
+
+    private void parseFenCastling(String castlingPart) throws IllegalArgumentException {
+        if ("-".equals(castlingPart)) {
+            return; // All flags remain false
+        }
+        for (char c : castlingPart.toCharArray()) {
+            switch (c) {
+                case 'K': this.whiteCanCastleKingSide = true; break;
+                case 'Q': this.whiteCanCastleQueenSide = true; break;
+                case 'k': this.blackCanCastleKingSide = true; break;
+                case 'q': this.blackCanCastleQueenSide = true; break;
+                default: throw new IllegalArgumentException("Invalid character '" + c + "' in FEN castling availability.");
+            }
+        }
+    }
+
+    private void parseFenEnPassant(String epPart) throws IllegalArgumentException {
+        if (!"-".equals(epPart)) {
+            Square epSquare = Square.fromAlgebraic(epPart);
+            if (epSquare == null || !epSquare.isValid()) {
+                throw new IllegalArgumentException("Invalid en passant target square in FEN: '" + epPart + "'.");
+            }
+            // Basic validation: EP square must be on rank 3 or 6
+            if (epSquare.row() != 2 && epSquare.row() != 5) {
+                throw new IllegalArgumentException("Invalid en passant target square rank in FEN: '" + epPart + "' (must be rank 3 or 6).");
+            }
+            // More validation could be added (e.g., is there actually an enemy pawn that could capture it?)
+            this.enPassantTargetSquare = epSquare;
+        } else {
+            this.enPassantTargetSquare = null;
+        }
+    }
+
     // --- Getters ---
     public Board getBoard() { return board; }
     public Color getCurrentPlayer() { return currentPlayer; }
@@ -35,6 +186,7 @@ public class GameState {
     public boolean canCastleQueenSide(Color color) { return color == Color.WHITE ? whiteCanCastleQueenSide : blackCanCastleQueenSide; }
     public Square getEnPassantTargetSquare() { return enPassantTargetSquare; }
     public int getFullMoveNumber() { return fullMoveNumber; }
+    public int getHalfMoveClock() { return halfMoveClock; }
 
 
     // --- Core Logic ---
@@ -390,27 +542,28 @@ public class GameState {
         int dr = to.row() - from.row();
         int dc = to.col() - from.col();
 
-        switch (attacker.type()) {
-            case PAWN:
+        return switch (attacker.type()) {
+            case PAWN -> {
                 int direction = (attacker.color() == Color.WHITE) ? 1 : -1;
-                return dr == direction && Math.abs(dc) == 1; // Diagonal forward capture only
-            case KNIGHT:
-                return (Math.abs(dr) == 2 && Math.abs(dc) == 1) || (Math.abs(dr) == 1 && Math.abs(dc) == 2);
-            case BISHOP:
-                if (Math.abs(dr) != Math.abs(dc)) return false; // Not diagonal
-                return isPathClear(from, to, dr, dc);
-            case ROOK:
-                if (dr != 0 && dc != 0) return false; // Not horizontal/vertical
-                return isPathClear(from, to, dr, dc);
-            case QUEEN:
+                yield dr == direction && Math.abs(dc) == 1;
+            }
+            case KNIGHT -> (Math.abs(dr) == 2 && Math.abs(dc) == 1) || (Math.abs(dr) == 1 && Math.abs(dc) == 2);
+            case BISHOP -> {
+                if (Math.abs(dr) != Math.abs(dc)) yield false;
+                yield isPathClear(from, to, dr, dc); // Not diagonal
+            }
+            case ROOK -> {
+                if (dr != 0 && dc != 0) yield false;
+                yield isPathClear(from, to, dr, dc); // Not horizontal/vertical
+            }
+            case QUEEN -> {
                 if (Math.abs(dr) == Math.abs(dc) || dr == 0 || dc == 0) { // Diagonal or Straight
-                    return isPathClear(from, to, dr, dc);
+                    yield isPathClear(from, to, dr, dc);
                 }
-                return false;
-            case KING:
-                return Math.abs(dr) <= 1 && Math.abs(dc) <= 1; // Adjacent square
-        }
-        return false;
+                yield false;
+            }
+            case KING -> Math.abs(dr) <= 1 && Math.abs(dc) <= 1; // Adjacent square
+        };
     }
 
     // Helper for sliding pieces (Rook, Bishop, Queen) attack check
