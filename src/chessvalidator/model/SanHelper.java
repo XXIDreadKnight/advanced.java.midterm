@@ -39,10 +39,10 @@ public class SanHelper {
 
         // 1. Handle Castling
         if (CASTLE_KINGSIDE_PATTERN.matcher(san).matches()) {
-            return findMatchingMove(legalMoves, move -> move.isCastleKingside(), san, "Kingside Castling");
+            return findMatchingMove(legalMoves, Move::isCastleKingside, san, "Kingside Castling");
         }
         if (CASTLE_QUEENSIDE_PATTERN.matcher(san).matches()) {
-            return findMatchingMove(legalMoves, move -> move.isCastleQueenside(), san, "Queenside Castling");
+            return findMatchingMove(legalMoves, Move::isCastleQueenside, san, "Queenside Castling");
         }
 
         // 2. Handle Regular Moves
@@ -85,7 +85,7 @@ public class SanHelper {
 
                 // Allow SAN 'x' if it's a capture context. Allow no 'x' if not capture context.
                 // Tolerate missing 'x' for captures (common) but flag explicit 'x' on non-capture as error later?
-                if (isCapture && !isCaptureContext && !move.isEnPassantCapture()) {
+                if (isCapture && !isCaptureContext) {
                     continue; // SAN says capture, but move isn't - invalid SAN/move mismatch
                 }
                 // PGN standard technically requires 'x' for captures except pawns.
@@ -161,6 +161,4 @@ public class SanHelper {
         return matches.get(0);
     }
 
-    // TODO: Add method `moveToSan(Move move, GameState state)` if needed later for generating PGN.
-    // This also requires checking for ambiguity among legal moves.
 }

@@ -534,8 +534,6 @@ public class GameState {
         return false;
     }
 
-    // Helper for isSquareAttacked - checks if a piece at 'from' attacks 'to' based *only* on movement rules
-    // Ignores whose turn it is, ignores pins, etc. Just raw attack vectors.
     private boolean isAttacking(Piece attacker, Square from, Square to) {
         if (attacker == null || from.equals(to)) return false;
 
@@ -550,15 +548,15 @@ public class GameState {
             case KNIGHT -> (Math.abs(dr) == 2 && Math.abs(dc) == 1) || (Math.abs(dr) == 1 && Math.abs(dc) == 2);
             case BISHOP -> {
                 if (Math.abs(dr) != Math.abs(dc)) yield false;
-                yield isPathClear(from, to, dr, dc); // Not diagonal
+                yield isLineAttackClear(from, to, dr, dc); // Not diagonal
             }
             case ROOK -> {
                 if (dr != 0 && dc != 0) yield false;
-                yield isPathClear(from, to, dr, dc); // Not horizontal/vertical
+                yield isLineAttackClear(from, to, dr, dc); // Not horizontal/vertical
             }
             case QUEEN -> {
                 if (Math.abs(dr) == Math.abs(dc) || dr == 0 || dc == 0) { // Diagonal or Straight
-                    yield isPathClear(from, to, dr, dc);
+                    yield isLineAttackClear(from, to, dr, dc);
                 }
                 yield false;
             }
@@ -566,22 +564,27 @@ public class GameState {
         };
     }
 
-    // Helper for sliding pieces (Rook, Bishop, Queen) attack check
-    private boolean isPathClear(Square from, Square to, int dr, int dc) {
+    /**
+     * Helper specifically for isAttacking for sliding pieces (R, B, Q).
+     * Checks if the line of sight from 'from' to 'to' is clear for an attack,
+     * meaning no *other* pieces are strictly between them.
+     */
+    private boolean isLineAttackClear(Square from, Square to, int dr, int dc) {
         int stepR = Integer.signum(dr);
         int stepC = Integer.signum(dc);
         int steps = Math.max(Math.abs(dr), Math.abs(dc));
 
-        // Check squares between 'from' and 'to'
+        // Iterate intermediate squares ONLY
         for (int i = 1; i < steps; i++) {
             Square intermediate = new Square(from.row() + i * stepR, from.col() + i * stepC);
+            // If any intermediate square is occupied by ANY piece, the line attack is blocked.
             if (board.getPiece(intermediate) != null) {
-                return false; // Path is blocked
+                return false;
             }
         }
-        return true; // Path is clear up to the target square
+        // If loop completes, no intermediate pieces block the attack line.
+        return true;
     }
-
 
     /** Checks if the current player is in check. */
     public boolean isInCheck() {

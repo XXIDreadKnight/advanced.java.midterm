@@ -6,8 +6,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 class GameStateTest {
 
@@ -190,21 +188,46 @@ class GameStateTest {
     void testGenerateLegalMoves_PinnedPieceCannotMoveAlongPin() {
         // Setup: White King e1, White Rook e2, Black Rook e8. Rook on e2 is pinned.
         gameState.loadFromFen("4r2k/8/8/8/8/8/4R3/4K3 w - - 0 1");
-        List<Move> moves = gameState.generateLegalMoves();
+
+        System.out.println("--- Pin Test ---");
+        System.out.println("Board state:\n" + gameState.getBoard());
+        System.out.println("Current Player: " + gameState.getCurrentPlayer());
+
+        List<Move> pseudoMoves = gameState.generatePseudoLegalMoves();
+        System.out.println("Pseudo-Legal Moves (" + pseudoMoves.size() + "):");
+        // This should list Re3, Rd2 etc.
+        pseudoMoves.forEach(m -> System.out.println("  " + m));
+
+
+        List<Move> legalMoves = gameState.generateLegalMoves(); // Generate the moves
+        System.out.println("\nLegal Moves (" + legalMoves.size() + "):");
+        // This list SHOULD only contain Kd1, Kf1, Kd2, Kf2, Rxe8
+        legalMoves.forEach(m -> System.out.println("  " + m));
+        System.out.println("--------------------------");
 
         // Pinned Rook should not be able to move vertically along the pin line (e3, e4, etc.)
-        assertFalse(findMove(moves, "e2", "e3", PieceType.ROOK), "Pinned Rook Re3 should be illegal");
-        assertFalse(findMove(moves, "e2", "e4", PieceType.ROOK), "Pinned Rook Re4 should be illegal");
-        // Pinned Rook *can* move horizontally if not blocked (doesn't expose king)
-        assertTrue(findMove(moves, "e2", "d2", PieceType.ROOK), "Pinned Rook Rd2 should be legal");
-        assertTrue(findMove(moves, "e2", "f2", PieceType.ROOK), "Pinned Rook Rf2 should be legal");
+        assertFalse(findMove(legalMoves, "e2", "e3", PieceType.ROOK), "Pinned Rook Re3 should be illegal"); // Expect False -> Pass if logic is correct
+        assertFalse(findMove(legalMoves, "e2", "e4", PieceType.ROOK), "Pinned Rook Re4 should be illegal"); // Expect False -> Pass
+
+        // Pinned Rook cannot move horizontally off the pin line
+        assertFalse(findMove(legalMoves, "e2", "d2", PieceType.ROOK), "Pinned Rook Rd2 should be illegal"); // Expect False -> Pass
+        assertFalse(findMove(legalMoves, "e2", "f2", PieceType.ROOK), "Pinned Rook Rf2 should be illegal"); // Expect False -> Pass
+        assertFalse(findMove(legalMoves, "e2", "a2", PieceType.ROOK), "Pinned Rook Ra2 should be illegal"); // Expect False -> Pass
+        assertFalse(findMove(legalMoves, "e2", "h2", PieceType.ROOK), "Pinned Rook Rh2 should be illegal"); // Expect False -> Pass
+
         // Pinned Rook *can* capture the pinning piece
-        assertTrue(findMove(moves, "e2", "e8", PieceType.ROOK), "Pinned Rook Rxe8 should be legal");
+        assertTrue(findMove(legalMoves, "e2", "e8", PieceType.ROOK), "Pinned Rook Rxe8 should be legal"); // Expect True -> Pass
+
         // King moves should be available
-        assertTrue(findMove(moves, "e1", "d1", PieceType.KING), "Kd1 should be legal");
-        assertTrue(findMove(moves, "e1", "f1", PieceType.KING), "Kf1 should be legal");
-        // King cannot move into the pin line
-        assertFalse(findMove(moves, "e1", "e2", PieceType.KING), "Ke2 should be illegal");
+        assertTrue(findMove(legalMoves, "e1", "d1", PieceType.KING), "Kd1 should be legal"); // Expect True -> Pass
+        assertTrue(findMove(legalMoves, "e1", "f1", PieceType.KING), "Kf1 should be legal"); // Expect True -> Pass
+        assertTrue(findMove(legalMoves, "e1", "d2", PieceType.KING), "Kd2 should be legal"); // Expect True -> Pass
+        assertTrue(findMove(legalMoves, "e1", "f2", PieceType.KING), "Kf2 should be legal"); // Expect True -> Pass
+
+        // King cannot move into the pin line (directly attacked)
+        assertFalse(findMove(legalMoves, "e1", "e2", PieceType.KING), "Ke2 should be illegal (attacked)"); // Expect False -> Pass
+
+        assertEquals(5, legalMoves.size(), "Expected 5 legal moves (4 King + 1 Rook Capture)"); // Correct count
     }
 
 
